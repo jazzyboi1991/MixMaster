@@ -37,6 +37,14 @@ function animateAmbient(timestampMs) {
 }
 requestAnimationFrame(animateAmbient);
 
+// 로딩 바가 표시될 때마다 배경(.ambient-bg)의 hue-rotate 주기와 위상을 맞춰
+// 두 애니메이션이 같은 순간에 같은 색이 되도록 negative animation-delay를 부여
+const AMBIENT_COLOR_CYCLE_SECONDS = 32.5;
+function syncProgressLineColorPhase() {
+  const elapsedSeconds = performance.now() / 1000;
+  const phase = elapsedSeconds % AMBIENT_COLOR_CYCLE_SECONDS;
+  progressLine.style.animationDelay = `0s, -${phase}s`;
+}
 
 /* ---------- Health check ---------- */
 async function checkHealth() {
@@ -169,6 +177,8 @@ async function askMixMaster(query) {
   inFlight = true;
   consoleSubmit.disabled = true;
   progressLine.hidden = false;
+  void progressLine.offsetWidth; // 강제 리플로우: hidden 해제가 먼저 반영되도록 해서 뒤이은 animation-delay가 무시되지 않게 함
+  syncProgressLineColorPhase();
   resetSteps();
 
   addBubble({ role: "user", name: "Producer", body: query });
