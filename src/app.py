@@ -13,6 +13,9 @@ from pydantic import BaseModel, Field
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 from agent import build_agent_graph
+from db import SessionLocal
+from models import ChatLog, DocumentMeta
+from sqlalchemy import func
 
 app = FastAPI(
     title="MixMaster AI API Server",
@@ -67,6 +70,18 @@ def validate_input_guardrail(query: str):
                 status_code=400,
                 detail=f"가드레일 감지: 부적절한 단어('{word}')가 포함되어 있습니다.",
             )
+
+
+def log_chat(thread_id: str, query: str, response: str, category: str):
+    """대화 로그를 MySQL에 적재"""
+    db = SessionLocal()
+    try:
+        db.add(ChatLog(thread_id=thread_id, query=query, response=response, category=category))
+        db.commit()
+    except Exception as e:
+        print(f"[DB LOG ERROR] {e}")
+    finally:
+        db.close()
 
 
 class ChatRequest(BaseModel):
@@ -164,12 +179,16 @@ async def chat_endpoint(request: ChatRequest):
         config = {"configurable": {"thread_id": request.thread_id}}
         final_state = agent_app.invoke(initial_state, config=config)
 
+        response_text = final_state.get("response", "")
+        category = final_state.get("category", "general")
+        log_chat(request.thread_id, request.query, response_text, category)
+
         return ChatResponse(
             query=request.query,
-            category=final_state.get("category", "general"),
+            category=category,
             clarification_needed=final_state.get("clarification_needed", False),
             collected_details=final_state.get("collected_details", {}),
-            response=final_state.get("response", ""),
+            response=response_text,
             sources=final_state.get("sources", []),
             steps=final_state.get("steps", []),
         )
@@ -195,6 +214,42 @@ async def chat_stream_endpoint(request: ChatRequest):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.get("/api/stats/chat-summary")
+def chat_summary():
+    """MySQL에 적재된 세션 로그를 집계하여 반환하는 간단 대시보드 API"""
+    db = SessionLocal()
+    try:
+        total_chats = db.query(func.count(ChatLog.id)).scalar() or 0
+        category_stats = db.query(ChatLog.category, func.count(ChatLog.id)).group_by(ChatLog.category).all()
+        return {
+            "total_chats": total_chats,
+            "by_category": {cat: count for cat, count in category_stats}
+        }
+    except Exception as e:
+        print(f"[Stats Error] {e}")
+        return {"total_chats": 0, "by_category": {}, "error": str(e)}
+    finally:
+        db.close()
+
+
+@app.get("/api/stats/documents")
+def document_stats():
+    """DocumentMeta 테이블 기반 수집 문서 현황 조회 API"""
+    db = SessionLocal()
+    try:
+        total_docs = db.query(func.count(DocumentMeta.id)).scalar() or 0
+        category_stats = db.query(DocumentMeta.category, func.count(DocumentMeta.id)).group_by(DocumentMeta.category).all()
+        return {
+            "total_documents": total_docs,
+            "by_category": {cat: count for cat, count in category_stats}
+        }
+    except Exception as e:
+        print(f"[Stats Error] {e}")
+        return {"total_documents": 0, "by_category": {}, "error": str(e)}
+    finally:
+        db.close()
 
 
 @app.get("/health")

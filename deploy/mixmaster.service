@@ -1,0 +1,16 @@
+[Unit]
+Description=MixMaster AI FastAPI Service
+After=network.target
+
+[Service]
+Type=simple
+User=opc
+WorkingDirectory=/home/opc/MixMaster
+Environment="PATH=/home/opc/.local/bin:/usr/local/bin:/usr/bin"
+EnvironmentFile=/home/opc/MixMaster/.env
+ExecStart=/usr/bin/python3.11 -m uvicorn src.app:app --host 0.0.0.0 --port 8000 --reload
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

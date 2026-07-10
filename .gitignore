@@ -118,3 +118,10 @@ docs/
 Agent 평가 과제 공지.pdf
 Oracle cloud 기반 데이터 파이프라인 평가 과제 공지.pdf
 
+# SSH Keys & Sensitive Files
+*.pem
+*.key
+ssh-key-*
+*@*.pem
+funkybot2002@gmail.com*
+

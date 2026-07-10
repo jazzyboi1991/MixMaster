@@ -2,6 +2,8 @@
 
 본 프로젝트는 오디오 엔지니어링 및 믹싱에 입문하거나 어려움을 겪는 사용자들을 위해, Wikipedia의 공신력 있는 음향 자료들과 실용적인 오디오 계산기 도구를 결합하여 맞춤형 사운드 믹싱 가이드를 제공하는 자율형 LangGraph AI 에이전트입니다.
 
+**[OCI Cloud 배포 버전]** 이제 로컬 개발뿐 아니라 Oracle Cloud Infrastructure(OCI) 위에서도 운영 가능합니다. 데이터 수집-저장-가공-제공의 완전한 파이프라인과 통계 대시보드 API를 포함합니다. 자세한 내용은 [`docs/05. Cloud 기능 추가.md`](docs/05.%20Cloud%20기능%20추가.md)를 참조하세요.
+
 ---
 
 ## 1. 서비스 소개 및 사용 시나리오
@@ -84,25 +86,82 @@ graph TD
 
 ## 4. 설치 및 실행 방법
 
-### 1) 환경 변수 설정
-프로젝트 루트 폴더에 `.env` 파일을 생성하고 구글 제미나이 API 키를 입력합니다.
+### 로컬 개발 환경 (Docker 없음, 기존 방식)
+
+#### 1) 환경 변수 설정
+프로젝트 루트 폴더에 `.env` 파일을 생성합니다.
+```bash
+cp .env.example .env
+```
+`.env` 파일을 편집하여 필수 값 입력:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
+
+# 로컬 개발 시 (선택사항, 기본값 사용 가능)
+# DB_DIR=./chroma_db
 ```
 
-### 2) 패키지 설치
+#### 2) 패키지 설치
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3) API 서버 실행
+#### 3) API 서버 실행
 ```bash
-python3 -m uvicorn app:app --app-dir src --reload --port 8000
+python3 -m uvicorn src.app:app --reload --port 8000
 ```
 웹 브라우저를 열고 `http://localhost:8000`에 접속하면 시각적인 웹 UI 프론트엔드를 이용할 수 있습니다.
 
 ---
 
-## 5. 한계점 및 향후 개선 방향
+### OCI Cloud 배포 (Oracle Cloud Infrastructure)
+
+OCI VM(Oracle Linux 8.10) 위에서 실행하는 경우 자세한 절차는 [`docs/05. Cloud 기능 추가.md`](docs/05.%20Cloud%20기능%20추가.md)의 "5. 설치 및 실행 방법" 섹션을 참조하세요.
+
+**주요 단계:**
+1. 환경변수 설정 (OCI Object Storage, MySQL, Block Volume 경로)
+2. 패키지 설치
+3. MySQL 테이블 생성 (`scripts/init_db.py`)
+4. Wikipedia 데이터 수집 (`src/ingester.py`)
+5. systemd 서비스 등록 (FastAPI 상시 실행)
+6. cron 스케줄 등록 (자동 데이터 수집)
+
+---
+
+## 5. 데이터 파이프라인 (수집-저장-가공-제공)
+
+### OCI 클라우드 환경에서의 4단계 파이프라인
+
+| 단계 | 담당 모듈 | 입력 | 출력 | 저장소 |
+|---|---|---|---|---|
+| **수집 (Collect)** | `src/ingester.py` | Wikipedia API | 원본 텍스트 | Object Storage (`raw/wikipedia/`) |
+| **저장 (Store)** | `src/oci_storage.py`, `src/db.py` | 수집된 텍스트/메타 | 비정형 + 정형 데이터 | Object Storage, MySQL, Block Volume |
+| **가공 (Process)** | `src/ingester.py` (내부) | 원본 텍스트 | 임베딩 벡터 | Chroma DB (Block Volume) |
+| **제공 (Serve)** | `src/app.py` | 사용자 쿼리 | RAG 답변 + 통계 | 사용자 API, 통계 API |
+
+**사용 OCI 리소스:**
+- **VM Instance**: `vnic-manuel` (4 vCPU/15GB, Oracle Linux 8.10) - 코드 실행 및 FastAPI 서비스
+- **Block Volume**: 50GB (`/mnt/mixmaster-data`) - Chroma DB 및 로그 저장
+- **Object Storage**: 버킷 `mixmaster-datalake` (Namespace: `cn5brhz58dgr`) - Wikipedia 원본 텍스트 저장
+- **MySQL**: 8.0.46 (VM 내 설치) - 문서 메타데이터 및 대화 로그 저장
+
+**추가 통계 API:**
+- `/api/stats/chat-summary`: 대화 카테고리별 집계
+- `/api/stats/documents`: 수집 문서 카테고리별 통계
+
+---
+
+## 6. 한계점 및 향후 개선 방향
+
+### 기존 한계점
 * **RAG 컨텍스트의 정교성**: Wikipedia 영문 문서 위주로 색인되어 있어, 한국어 질문에 대한 번역 질의 확장을 추가하거나 한국어로 쓰인 오디오 엔지니어링 강의 문서를 벡터 DB에 추가 통합하면 보다 신뢰성 있는 현업 중심의 지식 응답이 가능할 것입니다.
 * **웹 검색 연동**: 사내 로컬 RAG DB 외에도 최신 상용 플러그인(FabFilter, Waves, Soundtoys 등)의 릴리즈 노트와 트렌드를 실시간으로 리트리브할 수 있는 `Tavily` 웹 검색 기능과의 결합이 권장됩니다.
+
+### OCI 클라우드 운영 시 한계점 (향후 개선)
+OCI 배포 시 현재 구현의 한계점 및 개선 방향은 [`docs/05. Cloud 기능 추가.md`](docs/05.%20Cloud%20기능%20추가.md)의 "7. 한계점 및 향후 개선 방향"을 참조하세요.
+
+주요 항목:
+- MySQL 관리형 서비스(HeatWave) 마이그레이션
+- 분산 벡터 DB 도입 (Weaviate, Milvus 등)
+- Event-driven 실시간 수집 (OCI Events + Functions)
+- HTTPS/사용자 인증 추가
