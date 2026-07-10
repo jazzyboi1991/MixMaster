@@ -197,29 +197,27 @@ MixMaster AI의 아키텍처는 아래와 같이 책임이 엄격히 분리된 9
 
 ### 1) Request/Response 전체 라이프사이클
 
+```mermaid
+flowchart TD
+    Start([클라이언트 요청]) --> FastAPI["[FastAPI] ChatRequest 검증 (Pydantic)"]
+    FastAPI --> Middleware["[Middleware] Audit 로깅 + 입력 검증 (가드레일 필터 작동)"]
+    Middleware --> AnalyzeQuery["[Agent] analyze_query 노드 실행<br>(LLM + JsonOutputParser로 카테고리/역질문 판단)"]
+    AnalyzeQuery --> RouteAfterAnalysis{"[Agent] route_after_analysis (조건부 분기)"}
+    
+    RouteAfterAnalysis -- "clarification_needed == True" --> AskClarification["[Agent] ask_clarification 노드 (역질문 메시지 생성)"]
+    AskClarification --> End([종료])
+    
+    RouteAfterAnalysis -- "clarification_needed == False" --> CallModel["[Agent] call_model 노드 (LLM 호출 및 도구 결정)"]
+    CallModel --> ToolsCondition{"[Agent] tools_condition 분기"}
+    
+    ToolsCondition -- "도구 필요" --> ToolsNode["[Agent] tools 노드 실행 (RAG/계산)"]
+    ToolsNode --> CallModel
+    
+    ToolsCondition -- "최종 응답" --> DBLog["[Database] log_chat() 실행 (MySQL에 세션 로그 기록)"]
+    DBLog --> APIResponse["[API] ChatResponse 반환 및 UI 렌더링"]
+    APIResponse --> End
 ```
-클라이언트 요청
-  ↓
-[FastAPI] ChatRequest 검증 (Pydantic)
-  ↓
-[Middleware] Audit 로깅 + 입력 검증 (가드레일 필터 작동)
-  ↓
-[Agent] analyze_query 노드 실행 (LLM + JsonOutputParser로 카테고리/역질문 판단)
-  ↓
-[Agent] route_after_analysis (조건부 분기)
-  ├─ (clarification_needed == True) ──> ask_clarification 노드 (역질문 메시지 생성) ──> 종료
-  └─ (clarification_needed == False) ─> call_model 노드 진행
-                                              ↓
-                                        [Agent] call_model 노드 (LLM 호출 및 도구 결정)
-                                              ↓
-                                        [Agent] tools_condition 분기
-                                          ├─ (도구 필요) ──> tools 노드 실행 (RAG/계산) ──> call_model 재진입
-                                          └─ (최종 응답) ─> 상태 반환 및 종료
-  ↓
-[Database] log_chat() 실행 (MySQL에 세션 로그 기록)
-  ↓
-[API] ChatResponse 반환 및 UI 렌더링
-```
+
 
 ### 2) 데이터 흐름 시나리오
 
