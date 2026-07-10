@@ -805,7 +805,7 @@
       "fill": {
         "type": "shader",
         "enabled": true,
-        "url": "../../../대학교 프로그래밍/AI 서비스 설계 및 구현/과제/gradient.glsl"
+        "url": "shaders/gradient.glsl"
       },
       "layout": "vertical",
       "gap": 32,
@@ -882,7 +882,7 @@
                   "fill": {
                     "type": "shader",
                     "enabled": true,
-                    "url": "../../../대학교 프로그래밍/AI 서비스 설계 및 구현/과제/typing_effect.glsl",
+                    "url": "shaders/typing_effect.glsl",
                     "uniforms": {
                       "u_color": "$text-elasti-white"
                     }
@@ -956,7 +956,7 @@
                   "fill": {
                     "type": "shader",
                     "enabled": true,
-                    "url": "../../../대학교 프로그래밍/AI 서비스 설계 및 구현/과제/typing_effect.glsl",
+                    "url": "shaders/typing_effect.glsl",
                     "uniforms": {
                       "u_color": "$text-elasti-mute"
                     }
@@ -1108,7 +1108,7 @@
       "fill": {
         "type": "shader",
         "enabled": true,
-        "url": "../../../대학교 프로그래밍/AI 서비스 설계 및 구현/과제/gradient.glsl"
+        "url": "shaders/gradient.glsl"
       },
       "layout": "vertical",
       "gap": 24,
@@ -1300,7 +1300,7 @@
                       "fill": {
                         "type": "shader",
                         "enabled": true,
-                        "url": "../../../대학교 프로그래밍/AI 서비스 설계 및 구현/과제/loading_glow.glsl"
+                        "url": "shaders/loading_glow.glsl"
                       },
                       "cornerRadius": 3,
                       "layout": "none"
