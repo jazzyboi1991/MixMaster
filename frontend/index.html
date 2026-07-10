@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MixMaster — Chat with your acoustics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="ambient-bg" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="logo">✦ MixMaster</div>
+      <div class="menu">
+        <span class="status-pill" id="engineStatus">RAG Engine Active</span>
+      </div>
+    </header>
+
+    <!-- Landing view: Elasti Landing MixMaster -->
+    <section id="landingView" class="view landing-view">
+      <div class="intro">
+        <h1 class="hero-title" id="heroTitle">Chat with your acoustics</h1>
+        <div class="pill-badge">AI Audio Engineering &amp; Phase Alignment</div>
+      </div>
+
+      <form id="landingForm" class="search-console" autocomplete="off">
+        <input
+          id="landingInput"
+          class="search-input"
+          type="text"
+          name="query"
+          placeholder="Q. Hey MixMaster, 보컬 위상 상쇄와 300Hz 마스킹을 해결해 줘..."
+          aria-label="믹싱 질문 입력"
+        />
+        <button type="submit" class="send-arrow" aria-label="질문 전송">↑</button>
+      </form>
+    </section>
+
+    <!-- Console view: Elasti Theme MixMaster -->
+    <section id="consoleView" class="view console-view" hidden>
+      <div class="console-grid">
+        <div class="chat-column">
+          <div class="chat-log" id="chatLog" aria-live="polite"></div>
+
+          <div class="progress-line" id="progressLine" hidden></div>
+
+          <form id="consoleForm" class="console-input-card" autocomplete="off">
+            <div class="text-wrapper">
+              <input
+                id="consoleInput"
+                type="text"
+                name="query"
+                placeholder="추가로 궁금한 믹싱 문제를 입력하세요..."
+                aria-label="추가 질문 입력"
+              />
+            </div>
+            <div class="action-row">
+              <div class="utils"><span class="clip" aria-hidden="true">📎</span></div>
+              <button type="submit" class="submit-btn" id="consoleSubmit">Analyze</button>
+            </div>
+          </form>
+        </div>
+
+        <aside class="details-panel">
+          <div class="panel status-panel" id="statusPanel" hidden>
+            <h2 class="panel-title">ANALYSIS METRICS</h2>
+            <div class="metrics-list">
+              <div class="metric-row">
+                <span class="label">Target Track</span>
+                <span class="value" id="metricInstrument">—</span>
+              </div>
+              <div class="metric-row">
+                <span class="label">Anomaly Detected</span>
+                <span class="value" id="metricProblem">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel pipeline-panel">
+            <h2 class="panel-title">RESOLVER SEQUENCE</h2>
+            <div class="step-list" id="stepList">
+              <div class="step" data-step="analyze"><span class="dot">●</span> Analyze Domain</div>
+              <div class="step" data-step="retrieve"><span class="dot">●</span> RAG Knowledge Search</div>
+              <div class="step" data-step="verify"><span class="dot">●</span> Verify Context &amp; Align Output</div>
+            </div>
+          </div>
+
+          <div class="panel source-panel" id="sourcePanel" hidden>
+            <h2 class="panel-title">KNOWLEDGE SOURCES</h2>
+            <div class="source-list" id="sourceList"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
